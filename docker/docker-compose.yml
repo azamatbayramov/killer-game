@@ -1,0 +1,59 @@
+volumes:
+  killer_game_db_data:
+
+networks:
+  killer_game_network:
+    driver: bridge
+
+services:
+  db:
+    container_name: killer_game_db
+    image: postgres:16
+    env_file:
+      - ../.env
+    volumes:
+      - killer_game_db_data:/var/lib/postgresql/data
+    networks:
+      - killer_game_network
+    restart: unless-stopped
+
+  api:
+    container_name: killer_game_api
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      target: api
+    env_file:
+      - ../.env
+    networks:
+      - killer_game_network
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  bot:
+    container_name: killer_game_bot
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      target: bot
+    env_file:
+      - ../.env
+    networks:
+      - killer_game_network
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  nginx:
+    container_name: killer_game_nginx
+    image: nginx:1.26
+    volumes:
+      - ./nginx:/etc/nginx
+    networks:
+      - killer_game_network
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
